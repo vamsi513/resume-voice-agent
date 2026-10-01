@@ -228,16 +228,24 @@ In order:
 **Retrieval** — 41 labeled questions (36 answerable, 5 off-topic), labels written by reading
 the chunks, not by running the retriever:
 
-| | Hybrid (shipped) | Dense only |
+| k | Hit@k | Recall@k |
 |---|---|---|
-| Recall@1 | 0.889 | 0.861 |
-| Recall@3 | 0.944 | 0.944 |
-| Recall@5 | 1.000 | 1.000 |
-| MRR | 0.931 | 0.912 |
+| 1 | 0.889 | 0.847 |
+| **3** | **0.944** | **0.944** |
+| 5 | 1.000 | 0.991 |
 
-> "Recall@k asks whether the right passage reached the generator at all — that's what
-> predicts whether it *can* answer, since the generator sees all three. MRR rewards putting
-> it first, which matters because spoken answers are short, so the top chunk dominates."
+`TOP_K=3`, so only the first three ever reach the generator. MRR **0.931**.
+Dense-only baseline: Hit@1 0.861, MRR 0.912.
+
+> "Hit@k asks whether *any* relevant passage reached the top k. I was calling that
+> Recall@k and it isn't -- Recall@k is the share of *all* relevant chunks retrieved, and
+> it's lower on the four questions with more than one valid source. Hit@k was the
+> flattering number, so I report both now. MRR rewards putting it first, which matters
+> because spoken answers are short."
+
+Know this one too: **two questions can't be answered at all.** Their chunk ranks 4th and
+`TOP_K=3`, so it never reaches the generator. Hit@5 of 1.000 does not mean it answers
+everything.
 
 **Why BM25 is in there at all:**
 
@@ -256,11 +264,13 @@ the chunks, not by running the retriever:
 **Grounding** — 31 behavioural cases, **31/31 stable across three runs**: 11 answered, 7
 missing-detail, 4 unrelated, 4 fabrication, 4 injection, 1 clarification.
 
-> "These check meaning, not strings. A refusal counts in any wording that declines. What's
-> actually asserted is that the answer contains nothing unsupported — every case carries a
-> list of facts that would only appear if the model invented them."
+> "To be precise it's pattern matching, not semantic judgement -- no model grades the
+> output. The decline check is a regex covering the phrasings this agent produces, so it
+> isn't pinned to one sentence, and every case lists facts that would only appear if the
+> model invented them. The limit is real: a refusal phrased outside that regex scores as
+> a failure, and a fabrication nobody listed scores as a pass." 
 
-**98 unit tests**, no network, plus lint clean.
+**123 unit tests**, no network, plus lint clean.
 
 **Latency:** 2.1s to answer, 2.4s with reference resolution, **0.01s** for a deterministic
 refusal.
@@ -322,8 +332,8 @@ refusal.
 > resume index, and generates only from what it retrieved. The call id is the thread id, so
 > it remembers within a call and can't leak across calls. Scope is enforced in five layers
 > because I measured that no single threshold separates on-topic from off-topic. Retrieval
-> is Recall@3 0.94, MRR 0.93; the behavioural suite is 31 of 31. I haven't made a live
-> voice call — that's the gap."
+> is Hit@3 0.94, Recall@3 0.94, MRR 0.93; the behavioural suite is 31 of 31, verified on
+> real voice calls. The gap is telephony -- I only tested browser calls."
 
 
 ---

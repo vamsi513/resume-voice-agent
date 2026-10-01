@@ -45,9 +45,9 @@ Say it in the first 30 seconds. Naming the gap buys you every other claim.
 
 ## The three numbers
 
-- Retrieval: **Recall@3 0.94, MRR 0.93** on 41 labeled questions
+- Retrieval: **Hit@3 0.94, Recall@3 0.94, MRR 0.93** on 41 labeled questions
 - Behaviour: **31/31**, stable over 3 runs
-- **110** unit tests, offline
+- **123** unit tests, offline
 - **3 live voice calls**, 15 turns, every refusal class fired over voice
 
 ## The two measurements worth leading with
