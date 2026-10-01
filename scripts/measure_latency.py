@@ -9,6 +9,7 @@ Run: python scripts/measure_latency.py --base http://127.0.0.1:8000
 from __future__ import annotations
 
 import argparse
+import os
 import statistics
 import time
 import uuid
@@ -29,9 +30,11 @@ REPEATS = 3
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base", default="http://127.0.0.1:8000")
+    parser.add_argument("--secret", default=os.getenv("SERVER_SECRET", ""))
     args = parser.parse_args()
 
-    with httpx.Client(base_url=args.base, timeout=60) as client:
+    headers = {"X-Vapi-Secret": args.secret} if args.secret else {}
+    with httpx.Client(base_url=args.base, timeout=60, headers=headers) as client:
         if not client.get("/health").json().get("ready"):
             return print("server not ready") or 1
 

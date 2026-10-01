@@ -214,3 +214,88 @@ def test_health_reports_the_live_configuration(client):
     health = client.get("/health").json()
     assert health["ready"] is True
     assert health["checkpointer"] == "AsyncSqliteSaver"
+
+
+# --- the shared secret must cover every costly or revealing route ---------------
+# Found in review: only /chat/completions checked it, so anyone who found the public
+# tunnel could run model requests on the operator's OpenAI key via /text, read resume
+# content via /debug/*, and lift the Vapi key pair via /vapi-config.
+
+@pytest.fixture
+def secured(client, monkeypatch):
+    from dataclasses import replace
+
+    monkeypatch.setattr(server, "settings", replace(server.settings, server_secret="s3cret"))
+    return client
+
+
+@pytest.mark.parametrize("method,path,payload", [
+    ("post", "/chat/completions", {"model": "m", "stream": False,
+                                   "messages": [{"role": "user", "content": "hi"}]}),
+    ("post", "/text", {"call_id": "c", "message": "hi"}),
+    ("get", "/debug/last?call_id=c", None),
+    ("get", "/debug/chunks", None),
+    ("get", "/debug/thread?call_id=c", None),
+    ("get", "/vapi-config", None),
+])
+def test_every_sensitive_route_requires_the_secret(secured, method, path, payload):
+    call = getattr(secured, method)
+    response = call(path, json=payload) if payload is not None else call(path)
+    assert response.status_code == 401, f"{method.upper()} {path} is unprotected"
+
+
+@pytest.mark.parametrize("method,path,payload", [
+    ("post", "/text", {"call_id": "c", "message": "hi"}),
+    ("get", "/debug/chunks", None),
+    ("get", "/vapi-config", None),
+])
+def test_sensitive_routes_work_with_the_secret(secured, method, path, payload):
+    call = getattr(secured, method)
+    headers = {"X-Vapi-Secret": "s3cret"}
+    response = call(path, json=payload, headers=headers) if payload is not None \
+        else call(path, headers=headers)
+    assert response.status_code == 200
+
+
+def test_text_endpoint_is_open_when_no_secret_is_configured(client):
+    """Local development must not need configuration."""
+    assert client.post("/text", json={"call_id": "c", "message": "hi"}).status_code == 200
+
+
+# --- debug must not cross sessions ---------------------------------------------
+# Found in review: the page fell back to "the most recent turn across all calls", which
+# could show one caller another caller's question and retrieved passages.
+
+def test_debug_last_requires_a_call_id(client):
+    assert client.get("/debug/last").status_code == 422
+
+
+def test_debug_last_cannot_read_another_call(client):
+    client.post("/chat/completions", json=vapi_body(stream=False))   # call vapi-call-1
+    other = client.get("/debug/last", params={"call_id": "someone-elses-call"}).json()
+    assert "note" in other, "a caller must not see another call's turn"
+    assert "question" not in other
+
+
+def test_there_is_no_endpoint_listing_all_calls(client):
+    """The all-calls listing and the 'latest' fallback were both removed."""
+    client.post("/chat/completions", json=vapi_body(stream=False))
+    body = client.get("/debug/last", params={"call_id": "x", "latest": "1"}).json()
+    assert "calls" not in body
+    assert "question" not in body
+
+
+def test_debug_payload_carries_raw_text_for_the_client_to_escape(client):
+    """The server returns the caller's turn verbatim -- it does not sanitise it.
+
+    That is deliberate: escaping belongs at the render site, and the page writes every
+    one of these values with textContent. This test documents the contract so nobody
+    later assumes the server scrubbed it. The matching client-side guarantee was
+    verified in a browser: the payload below renders as literal text, injecting no
+    nodes and running no script.
+    """
+    payload = '<img src=x onerror="alert(1)">'
+    client.post("/chat/completions", json=vapi_body(stream=False, messages=[
+        {"role": "user", "content": payload}]))
+    debug = client.get("/debug/last", params={"call_id": "vapi-call-1"}).json()
+    assert debug["question"] == payload

@@ -28,7 +28,7 @@ import time
 import uuid
 from typing import Any
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -255,13 +255,24 @@ def _sse_chunks(answer: str, model: str) -> Any:
     yield "data: [DONE]\n\n"
 
 
+def require_secret(x_vapi_secret: str | None = Header(default=None)) -> None:
+    """Shared auth for every route that spends money or returns data.
+
+    Originally only the Vapi endpoint checked this, which left /text able to run model
+    requests on the operator's OpenAI key, and /debug/* able to return resume content,
+    to anyone who found the tunnel URL. The secret is optional (unset = open) so local
+    development needs no config, but setting it must protect everything, not one route.
+    """
+    if settings.server_secret and x_vapi_secret != settings.server_secret:
+        raise HTTPException(401, "Bad or missing X-Vapi-Secret")
+
+
 @app.post("/chat/completions")
 async def chat_completions(
     request: Request,
     x_vapi_secret: str | None = Header(default=None),
 ) -> Any:
-    if settings.server_secret and x_vapi_secret != settings.server_secret:
-        raise HTTPException(401, "Bad or missing X-Vapi-Secret")
+    require_secret(x_vapi_secret)
 
     body = await request.json()
     question = _extract_question(body)
@@ -323,8 +334,12 @@ class TextTurn(BaseModel):
 
 
 @app.post("/text")
-async def text_turn(turn: TextTurn) -> dict:
-    """Same graph, no voice. What the tests and the eval harness drive."""
+async def text_turn(turn: TextTurn, _: None = Depends(require_secret)) -> dict:
+    """Same graph, no voice. What the tests and the eval harness drive.
+
+    Behind the same secret as the Vapi route: it runs identical model requests, so
+    leaving it open would let anyone who found the URL spend the operator's quota.
+    """
     return await run_turn(turn.call_id, turn.message, position=turn.position)
 
 
@@ -350,23 +365,19 @@ async def health() -> dict:
 
 
 @app.get("/debug/last")
-async def debug_last(call_id: str | None = None, latest: bool = False) -> dict:
+async def debug_last(call_id: str, _: None = Depends(require_secret)) -> dict:
     if not settings.debug_panel:
         raise HTTPException(404, "Debug panel disabled")
-    if call_id:
-        return LAST_TURN.get(call_id, {"note": f"no completed turn for call_id {call_id}"})
-    if latest:
-        # The browser does not always learn Vapi's call id (the SDK may not expose it
-        # before the first turn), but the server always knows it. The debug panel falls
-        # back to this so evidence is visible during a real voice call.
-        if not LAST_TURN:
-            return {"note": "no turns yet"}
-        return max(LAST_TURN.values(), key=lambda d: d.get("completed_at", 0))
-    return {"calls": LAST_TURN}
+    # call_id is required, and there is deliberately no "most recent turn" fallback and
+    # no way to list all calls. An earlier version had both so the voice demo's debug
+    # panel could work before the browser learned Vapi's call id -- but that let one
+    # caller read another caller's question and retrieved resume passages. The page now
+    # takes the id from vapi.start()'s return value instead.
+    return LAST_TURN.get(call_id, {"note": f"no completed turn for call_id {call_id}"})
 
 
 @app.get("/debug/chunks")
-async def debug_chunks() -> dict:
+async def debug_chunks(_: None = Depends(require_secret)) -> dict:
     if not settings.debug_panel:
         raise HTTPException(404, "Debug panel disabled")
     retriever = STATE["retriever"]
@@ -382,7 +393,7 @@ async def debug_chunks() -> dict:
 
 
 @app.get("/debug/thread")
-async def debug_thread(call_id: str) -> dict:
+async def debug_thread(call_id: str, _: None = Depends(require_secret)) -> dict:
     """Read the checkpoint back for a call -- shows persistence is real."""
     if not settings.debug_panel:
         raise HTTPException(404, "Debug panel disabled")
@@ -404,11 +415,13 @@ async def debug_thread(call_id: str) -> dict:
 
 
 @app.get("/vapi-config")
-async def vapi_config() -> dict:
+async def vapi_config(_: None = Depends(require_secret)) -> dict:
     """Public key and assistant id, so the page can pre-fill itself.
 
-    Public key only -- it is meant for client code. Returns empty strings when unset,
-    and the page falls back to its form fields.
+    Behind the secret even though a Vapi public key is designed for client code: the
+    key plus the assistant id is enough for a stranger to start calls on the operator's
+    Vapi account and spend their credits. On a public tunnel that is a real cost, so
+    the convenience of pre-filling is gated the same as everything else.
     """
     return {
         "publicKey": settings.vapi_public_key,

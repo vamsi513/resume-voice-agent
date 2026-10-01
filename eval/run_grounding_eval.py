@@ -1,14 +1,25 @@
 """Behavioural evaluation against a running server.
 
-Judges answers, not rankings. Two rules make this meaningful rather than a string test:
+Judges answers, not rankings.
 
-  1. A refusal is recognised semantically. `_declines` accepts any wording that
-     declines, so rephrasing the refusal does not break the suite. What is actually
-     asserted is that the answer carries no unsupported claim.
-  2. `must_not_contain` is the real grounding check. It lists facts that would only
-     appear if the model invented them (an employer not on the resume, the answer to
-     an off-topic question, a phone number), so a case fails on fabrication even when
-     the refusal wording changed.
+WHAT THIS IS, PRECISELY: pattern matching, not semantic judgement. There is no model
+grading the output. A refusal is recognised by a regex covering the phrasings this
+agent actually produces, and grounding is asserted with substring checks. Calling it
+"semantic evaluation" would overstate it, and an earlier version of the README did.
+
+That still buys something a single exact-string assertion would not:
+
+  1. The decline regex accepts a range of wordings, so rephrasing a refusal does not
+     break the suite -- it is not pinned to one sentence.
+  2. `must_not_contain` is the check that actually matters. It lists facts that would
+     only appear if the model invented them (an employer not on the resume, the answer
+     to an off-topic question, a phone number), so a case fails on fabrication even
+     when the refusal wording changed.
+
+Its real limits: a refusal phrased in a way the regex does not cover is scored as a
+failure even if correct, and a fabricated fact nobody thought to list is scored as a
+pass. A model-graded rubric would catch both; it would also be slower, non-deterministic
+and need its own validation, which is not worth it for 31 cases.
 
 Usage:
   python eval/run_grounding_eval.py                       # against http://127.0.0.1:8000
@@ -18,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import uuid
@@ -89,13 +101,16 @@ def check(case: dict, answer: str) -> tuple[bool, str]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base", default="http://127.0.0.1:8000")
+    parser.add_argument("--secret", default=os.getenv("SERVER_SECRET", ""),
+                        help="X-Vapi-Secret, if the server is protected (default: $SERVER_SECRET)")
     parser.add_argument("--json", type=Path)
     args = parser.parse_args()
 
     cases = json.loads((ROOT / "eval/grounding_set.json").read_text())["cases"]
     results, passed = [], 0
 
-    with httpx.Client(base_url=args.base, timeout=60) as client:
+    headers = {"X-Vapi-Secret": args.secret} if args.secret else {}
+    with httpx.Client(base_url=args.base, timeout=60, headers=headers) as client:
         try:
             health = client.get("/health").json()
         except Exception as exc:

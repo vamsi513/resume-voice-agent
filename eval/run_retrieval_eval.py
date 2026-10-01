@@ -1,16 +1,25 @@
 """Measure retrieval quality on eval/retrieval_set.json.
 
 Metrics
-  Recall@k : fraction of answerable questions where at least one labeled-relevant
-             chunk appears in the top k. "Did the right passage reach the generator
-             at all?" -- the metric that actually predicts whether the agent can
-             answer, because the generator sees all k.
+  Hit@k    : fraction of answerable questions where AT LEAST ONE labeled-relevant chunk
+             appears in the top k. This was previously mislabelled "Recall@k" -- it is
+             not. Recall@k is the share of all relevant chunks retrieved; Hit@k only
+             asks whether any of them made it. The two differ on the 4 questions here
+             that have more than one relevant chunk, and Hit@k is the more flattering
+             number, so the old name overstated the result.
+  Recall@k : the real thing -- mean over questions of
+             |relevant retrieved in top k| / |relevant|. Lower than Hit@k whenever a
+             question has several valid supporting chunks.
   MRR      : mean of 1/(rank of the first relevant chunk). Rewards putting the right
              passage first. Matters here because voice answers are short, so the top
              chunk dominates what gets said.
   Separation : mean top-1 score on answerable vs unanswerable questions. Drives the
              similarity gate -- the two distributions must be far enough apart that
              one threshold can tell them apart.
+
+Note on k: the agent runs with TOP_K=3, so only the top 3 chunks ever reach the
+generator. Hit@5 is reported for diagnosis -- a question that is hit at 5 but not at 3
+is one the agent CANNOT currently answer.
 
 Usage
   python eval/run_retrieval_eval.py                 # dense only (default)
@@ -53,6 +62,7 @@ def evaluate(retriever: ResumeRetriever, questions: list[dict], max_k: int = 5) 
     unanswerable = [q for q in questions if not q["relevant_chunks"]]
 
     hits_at = {k: 0 for k in K_VALUES}
+    recall_at: dict[int, list[float]] = {k: [] for k in K_VALUES}
     reciprocal_ranks: list[float] = []
     per_question: list[dict] = []
     answerable_top1: list[float] = []
@@ -66,6 +76,9 @@ def evaluate(retriever: ResumeRetriever, questions: list[dict], max_k: int = 5) 
         for k in K_VALUES:
             if first_rank is not None and first_rank <= k:
                 hits_at[k] += 1
+            # True recall: how many of this question's relevant chunks are in the top k.
+            found = sum(1 for cid in ranked_ids[:k] if cid in relevant)
+            recall_at[k].append(found / len(relevant))
         reciprocal_ranks.append(1.0 / first_rank if first_rank else 0.0)
         answerable_top1.append(results[0].dense_score if results else 0.0)
         per_question.append(
@@ -100,7 +113,9 @@ def evaluate(retriever: ResumeRetriever, questions: list[dict], max_k: int = 5) 
     return {
         "n_answerable": n,
         "n_unanswerable": len(unanswerable),
-        "recall_at": {f"@{k}": round(hits_at[k] / n, 4) for k in K_VALUES},
+        "hit_at": {f"@{k}": round(hits_at[k] / n, 4) for k in K_VALUES},
+        "recall_at": {f"@{k}": round(sum(recall_at[k]) / n, 4) for k in K_VALUES},
+        "n_multi_chunk": sum(1 for q in answerable if len(q["relevant_chunks"]) > 1),
         "mrr": round(sum(reciprocal_ranks) / n, 4),
         "mean_top1_answerable": round(sum(answerable_top1) / n, 4),
         "mean_top1_unanswerable": round(sum(unanswerable_top1) / len(unanswerable), 4)
@@ -159,12 +174,12 @@ def main() -> int:
 
     if args.sweep_weight:
         print("\nfusion weight sweep (dense_weight=1.0 is dense-only):")
-        print(f"{'dense_w':>8} {'R@1':>7} {'R@3':>7} {'R@5':>7} {'MRR':>7}")
+        print(f"{'dense_w':>8} {'Hit@1':>7} {'Hit@3':>7} {'Hit@5':>7} {'MRR':>7}")
         for w in [round(x * 0.1, 1) for x in range(0, 11)]:
             r = build_retriever(args.offline, True, w)
             m = evaluate(r, questions)
-            print(f"{w:>8.1f} {m['recall_at']['@1']:>7.3f} {m['recall_at']['@3']:>7.3f} "
-                  f"{m['recall_at']['@5']:>7.3f} {m['mrr']:>7.3f}")
+            print(f"{w:>8.1f} {m['hit_at']['@1']:>7.3f} {m['hit_at']['@3']:>7.3f} "
+                  f"{m['hit_at']['@5']:>7.3f} {m['mrr']:>7.3f}")
         return 0
 
     if args.sweep:
@@ -173,9 +188,13 @@ def main() -> int:
 
     results = evaluate(retriever, questions)
     print(f"\nanswerable questions: {results['n_answerable']}   unanswerable: {results['n_unanswerable']}")
-    for k, v in results["recall_at"].items():
-        print(f"  Recall{k:<4} {v:.3f}")
-    print(f"  MRR      {results['mrr']:.3f}")
+    print(f"({results['n_multi_chunk']} of them have more than one relevant chunk, which is "
+          f"where Hit@k and Recall@k diverge)")
+    print(f"\n  {'k':<4}{'Hit@k':>9}{'Recall@k':>11}")
+    for k in K_VALUES:
+        marker = "   <- the generator only sees these" if k == settings.top_k else ""
+        print(f"  {k:<4}{results['hit_at'][f'@{k}']:>9.3f}{results['recall_at'][f'@{k}']:>11.3f}{marker}")
+    print(f"\n  MRR {results['mrr']:.3f}")
     print("\nscore separation (drives the similarity gate):")
     print(f"  mean dense top-1, answerable   {results['mean_top1_answerable']:.3f}   (min {results['min_top1_answerable']:.3f})")
     print(f"  mean dense top-1, unanswerable {results['mean_top1_unanswerable']:.3f}   (max {results['max_top1_unanswerable']:.3f})")

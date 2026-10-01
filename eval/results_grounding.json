@@ -20,7 +20,7 @@
       "turns": [
         "What was his GPA?"
       ],
-      "answer": "Vamsi's GPA is three point nine zero nine. He achieved this while studying for his Master of Science in Computer Science at the University of North Texas. If you have any more questions, feel free to ask."
+      "answer": "Vamsi's GPA was three point nine zero nine during his Master of Science in Computer Science at the University of North Texas. If you have any more questions, feel free to ask!"
     },
     {
       "id": "g-proj",
@@ -30,7 +30,7 @@
       "turns": [
         "What is AgentIQ?"
       ],
-      "answer": "AgentIQ is a multi-step agentic research assistant that Vamsi built and owned as a full-stack application. He developed a FastAPI back-end service with a Next.js front-end, containerized it with Docker, and deployed it to Kubernetes. The application orchestrates multi-step retrieval and reasoning using LangGraph and was load-tested under real traffic, achieving high metrics for faithfulness and answer relevancy."
+      "answer": "AgentIQ is a multi-step agentic research assistant that Vamsi built and owned as a full-stack application. He developed a FastAPI back-end service with a Next.js front-end, and it was containerized with Docker and deployed to Kubernetes. The application orchestrates multi-step retrieval and reasoning using LangGraph, and it was load-tested under real traffic, achieving high metrics for faithfulness and answer relevancy."
     },
     {
       "id": "g-tech",
@@ -40,7 +40,7 @@
       "turns": [
         "What technologies did he use in AgentIQ?"
       ],
-      "answer": "In AgentIQ, Vamsi used technologies such as Python, LangGraph, FAISS, Pinecone, and FastAPI, along with Next.js and TypeScript for the front-end. He also utilized Kubernetes for deployment and AWS EC2 for cloud services. If you need more details about his work, feel free to ask!"
+      "answer": "In AgentIQ, Vamsi used technologies such as Python, LangGraph, FAISS, Pinecone, LlamaIndex, FastAPI, Next.js with TypeScript, Kubernetes, and AWS EC2. If you need more details about his work there, feel free to ask!"
     },
     {
       "id": "g-exp",
@@ -50,7 +50,7 @@
       "turns": [
         "What did he do at Codecasa?"
       ],
-      "answer": "At Codecasa, he worked as a Machine Learning Intern from August 2023 to July 2024. He designed a Python and SQL ETL pipeline that ingested over 500,000 daily enterprise records into a centralized feature store, which reduced downstream model training latency by thirty percent. He also created SQL views for reporting and implemented automated data validation to catch quality issues before they affected downstream processes."
+      "answer": "At Codecasa, he worked as a Machine Learning Intern from August 2023 to July 2024. He designed a Python and SQL ETL pipeline that ingested over 500,000 daily enterprise records into a centralized feature store, which reduced downstream model training latency by thirty percent. Additionally, he created SQL views for reporting and configured database access control, while implementing automated data validation to catch quality issues before they affected downstream processes."
     },
     {
       "id": "g-pub",
@@ -60,7 +60,7 @@
       "turns": [
         "Has he published anything?"
       ],
-      "answer": "Yes, Vamsi has published a paper titled \"Cross-Lingual Stability and Bias in Instruction-Tuned Language Models for Humanitarian NLP.\" It was published in the Proceedings of LREC 2026 and focuses on fairness and bias mitigation in multilingual language model behavior. Would you like to know more about his work?"
+      "answer": "Yes, Vamsi has published a paper titled \"Cross-Lingual Stability and Bias in Instruction-Tuned Language Models for Humanitarian NLP.\" It was published in the Proceedings of LREC 2026, focusing on fairness and bias mitigation in multilingual language model behavior. Would you like to know more about his work?"
     },
     {
       "id": "g-mcp",
@@ -70,7 +70,7 @@
       "turns": [
         "Tell me about the MCP agent"
       ],
-      "answer": "Vamsi worked on the MCP Tool-Calling Agent, which is an LLM-Based Tool-Calling System from September 2026 to the present. He built an agent workflow using the Model Context Protocol, creating a server that exposes three tools: GitHub repo search, URL fetch, and SQLite query, all covered by a pytest suite for reliability. If you need more details about the technologies he used, feel free to ask."
+      "answer": "Vamsi worked on the MCP Tool-Calling Agent, which is an LLM-based tool-calling system from September 2026 to the present. He built an agent workflow using the Model Context Protocol, creating a server that exposes three tools: GitHub repo search, URL fetch, and SQLite query, all covered by a pytest suite for reliability. If you have more questions about his work or technologies, feel free to ask."
     },
     {
       "id": "g-triage",
@@ -80,7 +80,7 @@
       "turns": [
         "What did TriageTune find?"
       ],
-      "answer": "TriageTune found that a classical baseline still outperformed a LoRA-fine-tuned language model by four point two points, which was an unexpected result. This finding was reported honestly rather than just providing a single number. If you have any more questions about his work, feel free to ask!"
+      "answer": "TriageTune found that a classical baseline still outperformed a LoRA-fine-tuned large language model by four point two points, which was an unexpected result. This finding was reported honestly rather than just providing a single number. Would you like to know more about his other projects?"
     },
     {
       "id": "g-loc",
@@ -101,7 +101,7 @@
         "Tell me about IncidentMemory AI",
         "What technologies did he use in that project?"
       ],
-      "answer": "In IncidentMemory AI, Vamsi used technologies such as Python, FastAPI, Qdrant, BM25, sentence-transformers, MLflow, PostgreSQL, Redis, and Docker. He designed and deployed a Retrieval-Augmented Generation pipeline that integrated various retrieval methods. If you need more details about his work, feel free to ask."
+      "answer": "In IncidentMemory AI, Vamsi used technologies such as Python, FastAPI, Qdrant, BM25, sentence-transformers, MLflow, PostgreSQL, Redis, Docker, and AWS EC2. If you need more details about his work there, feel free to ask!"
     },
     {
       "id": "g-followup2",
@@ -112,7 +112,7 @@
         "Tell me about AgentIQ",
         "What problem does it solve?"
       ],
-      "answer": "AgentIQ is designed as a multi-step agentic research assistant. It orchestrates retrieval and reasoning processes to help users efficiently gather and analyze information. The system has been load-tested under real traffic conditions, ensuring reliability and performance in handling multiple requests. Would you like to know more about its features?"
+      "answer": "AgentIQ is designed as a multi-step agentic research assistant. It orchestrates retrieval and reasoning processes to help users efficiently gather and analyze information. The system has been load-tested under real traffic conditions, ensuring reliability and performance in handling requests. Would you like to know more about its features?"
     },
     {
       "id": "g-bachelors",

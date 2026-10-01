@@ -1,11 +1,17 @@
 {
   "n_answerable": 36,
   "n_unanswerable": 5,
-  "recall_at": {
+  "hit_at": {
     "@1": 0.8889,
     "@3": 0.9444,
     "@5": 1.0
   },
+  "recall_at": {
+    "@1": 0.8472,
+    "@3": 0.9444,
+    "@5": 0.9907
+  },
+  "n_multi_chunk": 4,
   "mrr": 0.9306,
   "mean_top1_answerable": 0.4059,
   "mean_top1_unanswerable": 0.1183,

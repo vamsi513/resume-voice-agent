@@ -125,6 +125,12 @@
 // The debug panel reads GET /debug/last, so retrieval evidence is inspectable without
 // ever being spoken. Chunk ids and scores are shown here and nowhere else.
 const $ = (id) => document.getElementById(id);
+
+// When the server is protected, the page needs the secret for /text and /debug. It is
+// supplied per-browser via ?secret=... and kept only in memory -- it is NOT baked into
+// the page, so the HTML itself carries no credential.
+const sharedSecret = new URLSearchParams(location.search).get("secret") || "";
+const secretHeaders = () => (sharedSecret ? { "X-Vapi-Secret": sharedSecret } : {});
 const params = new URLSearchParams(location.search);
 let callId = null;          // set per call; the server maps it to a LangGraph thread
 let partialEl = null;
@@ -134,7 +140,7 @@ $("a").value = params.get("assistant") || "";
 
 // Pre-fill from the server when it has been configured, so a reviewer opening the
 // link can just press Start call. URL params still win, so you can override.
-fetch("/vapi-config").then((r) => r.json()).then((c) => {
+fetch("/vapi-config", { headers: secretHeaders() }).then((r) => r.json()).then((c) => {
   if (!$("k").value && c.publicKey) $("k").value = c.publicKey;
   if (!$("a").value && c.assistantId) $("a").value = c.assistantId;
   if (c.configured) {
@@ -173,32 +179,51 @@ function addTurn(who, what, partial = false) {
 }
 
 async function refreshDebug(id) {
+  // Every value below is caller-controlled: the question comes from speech-to-text or
+  // the text box, and the passages come from the resume. They are written with
+  // textContent, never innerHTML, so a caller saying something that looks like markup
+  // cannot inject it into this page. (An earlier version interpolated them into an
+  // innerHTML template, which was an XSS hole reachable from the public tunnel.)
+  if (!id) return;
   try {
-    // In text mode we know our own id. In a voice call the SDK may not surface Vapi's
-    // call id, so fall back to "whatever turn the server finished most recently".
-    const query = id ? `call_id=${encodeURIComponent(id)}` : "latest=1";
-    let res = await fetch(`/debug/last?${query}`);
-    let d = await res.json();
-    if (!d || !d.route) {
-      d = await (await fetch("/debug/last?latest=1")).json();
-    }
+    const res = await fetch(`/debug/last?call_id=${encodeURIComponent(id)}`, {
+      headers: secretHeaders(),
+    });
+    const d = await res.json();
+    const box = $("debug");
     if (!d || !d.route) return;
-    const passages = (d.evidence || []).map((e) => `
-      <div class="passage">
-        <div class="cite">${e.citation} &middot; cosine ${e.dense_score} &middot; <code>${e.chunk_id}</code></div>
-        <pre>${e.text.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]))}</pre>
-      </div>`).join("");
-    $("debug").innerHTML = `
-      <h3>${d.question || ""}</h3>
-      <div class="kv">
-        <span>route</span><span><b>${d.route}</b> &mdash; ${d.route_reason || ""}</span>
-        <span>resolved query</span><span>${d.resolved_question || "(unchanged)"}</span>
-        <span>top cosine</span><span>${d.top_dense_score}</span>
-        <span>scope flags</span><span>${(d.flags || []).join(", ") || "none"}</span>
-        <span>thread</span><span><code>${d.thread_id}</code> &middot; turn ${d.turn_index} &middot; ${d.history_messages} msgs</span>
-        <span>latency</span><span>${d.latency_seconds}s</span>
-      </div>
-      ${passages || "<div class='cite'>No passages retrieved for this route.</div>"}`;
+
+    const el = (tag, text, cls) => {
+      const node = document.createElement(tag);
+      if (text !== undefined) node.textContent = text;
+      if (cls) node.className = cls;
+      return node;
+    };
+
+    box.replaceChildren();
+    box.append(el("h3", d.question || ""));
+
+    const kv = el("div", undefined, "kv");
+    const rows = [
+      ["route", `${d.route} — ${d.route_reason || ""}`],
+      ["resolved query", d.resolved_question || "(unchanged)"],
+      ["top cosine", String(d.top_dense_score)],
+      ["scope flags", (d.flags || []).join(", ") || "none"],
+      ["thread", `${d.thread_id} · turn ${d.turn_index} · ${d.history_messages} msgs`],
+      ["latency", `${d.latency_seconds}s`],
+    ];
+    for (const [k, v] of rows) kv.append(el("span", k), el("span", v));
+    box.append(kv);
+
+    for (const e of d.evidence || []) {
+      const passage = el("div", undefined, "passage");
+      passage.append(el("div", `${e.citation} · cosine ${e.dense_score} · ${e.chunk_id}`, "cite"));
+      passage.append(el("pre", e.text));
+      box.append(passage);
+    }
+    if (!(d.evidence || []).length) {
+      box.append(el("div", "No passages retrieved for this route.", "cite"));
+    }
   } catch (_) { /* debug panel is best-effort */ }
 }
 
@@ -213,7 +238,7 @@ async function sendText() {
   try {
     const res = await fetch("/text", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...secretHeaders() },
       body: JSON.stringify({ call_id: callId, message: text }),
     });
     const d = await res.json();
@@ -262,10 +287,7 @@ $("call").onclick = async () => {
     setStatus("conn", "connected", "on");
     setStatus("mic", "live", "on");
     $("end").disabled = false;
-    // Vapi's call id is the session key. Read it from the SDK so the debug panel
-    // and the server agree on which LangGraph thread this call maps to.
-    callId = vapi.call?.id || callId;
-    addTurn("note", "Connected" + (callId ? ` (call ${callId})` : "") + ". Speak when ready.");
+    addTurn("note", "Connected. Speak when ready.");
   });
 
   vapi.on("call-end", () => {
@@ -303,7 +325,14 @@ $("call").onclick = async () => {
   });
 
   try {
-    await vapi.start(assistant);
+    // start() resolves with the created call. Its id is the session key, and taking it
+    // here is what lets the debug panel stay scoped to THIS call -- the server has no
+    // "show me the latest turn" endpoint, deliberately.
+    const call = await vapi.start(assistant);
+    callId = call?.id || null;
+    if (!callId) {
+      addTurn("note", "Connected, but the call id wasn't returned, so the evidence panel will stay empty.");
+    }
   } catch (e) {
     setStatus("conn", "failed");
     addTurn("error", "start() failed: " + (e?.message || e));
