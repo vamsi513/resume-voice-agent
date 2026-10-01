@@ -1,0 +1,110 @@
+[
+  {
+    "chunk_id": "location--1",
+    "section": "Location",
+    "entry": null,
+    "text": "Location\nBased in Denton, TX. Open to relocation to San Jose, CA.",
+    "part": 1,
+    "parts": 1,
+    "citation": "Location"
+  },
+  {
+    "chunk_id": "technical-skills--1",
+    "section": "Technical Skills",
+    "entry": null,
+    "text": "Technical Skills\nAI/LLM Systems: LangChain, LangGraph, LlamaIndex, AI Agents, MCP (Model Context Protocol), Retrieval-Augmented Generation (RAG), LLM Evaluation (RAGAS).\nVector Search & Retrieval: FAISS, Qdrant, Pinecone, BM25, Hybrid Retrieval (RRF), Cross-Encoder Reranking.\nML Frameworks: PyTorch, TensorFlow, Scikit-learn, HuggingFace Transformers, PEFT/LoRA.\nLanguages & Back-End: Python, Java, TypeScript, JavaScript, SQL, FastAPI, REST APIs, PostgreSQL, Redis.\nMLOps & Cloud: MLflow, Docker, Kubernetes, CI/CD (GitHub Actions), AWS (EC2, S3, Bedrock), Google Cloud Platform (GCP).\nFundamentals & Practices: Object-Oriented Design, Testing, Debugging, Data Structures & Algorithms, Agile/Scrum, Git.",
+    "part": 1,
+    "parts": 1,
+    "citation": "Technical Skills"
+  },
+  {
+    "chunk_id": "experience--graduate-research-assistant--1",
+    "section": "Experience",
+    "entry": "Graduate Research Assistant - LLM Evaluation, University of North Texas, Denton, TX (May 2025 - Aug 2025)",
+    "text": "Graduate Research Assistant - LLM Evaluation, University of North Texas, Denton, TX (May 2025 - Aug 2025)\n- Designed evaluation datasets, metrics, and model evaluation techniques to assess accuracy and reliability across GPT-4, Claude, Mistral, and LLaMA in 6 languages; co-authored the resulting paper, published in the Proceedings of LREC 2026.\n- Built modular Python evaluation pipelines automating dataset preprocessing, prompt generation, and inference workflows, reducing manual evaluation time by an estimated 60%.",
+    "part": 1,
+    "parts": 1,
+    "citation": "Experience \u203a Graduate Research Assistant - LLM Evaluation, University of North Texas, Denton, TX (May 2025 - Aug 2025)"
+  },
+  {
+    "chunk_id": "experience--machine-learning-intern--1",
+    "section": "Experience",
+    "entry": "Machine Learning Intern - Data Engineering & AI Pipelines, Codecasa, India (Aug 2023 - Jul 2024)",
+    "text": "Machine Learning Intern - Data Engineering & AI Pipelines, Codecasa, India (Aug 2023 - Jul 2024)\n- Designed a Python/SQL ETL pipeline ingesting 500K+ daily enterprise records into a centralized feature store, reducing downstream model training latency by 30%.\n- Created SQL views for downstream reporting and configured database access control; implemented automated data validation catching quality issues before they propagated downstream.",
+    "part": 1,
+    "parts": 1,
+    "citation": "Experience \u203a Machine Learning Intern - Data Engineering & AI Pipelines, Codecasa, India (Aug 2023 - Jul 2024)"
+  },
+  {
+    "chunk_id": "experience--software-engineering-intern--1",
+    "section": "Experience",
+    "entry": "Software Engineering Intern, Coding Raja Technologies, India (Jul 2022 - Jul 2023)",
+    "text": "Software Engineering Intern, Coding Raja Technologies, India (Jul 2022 - Jul 2023)\n- Built e-commerce features end to end with a Django backend and a React frontend, integrating REST APIs across product, order, and payment data; debugged and resolved integration issues across the API layer.\n- Collaborated in an agile team environment with sprint planning, daily standups, and retrospectives, using Git for version control.",
+    "part": 1,
+    "parts": 1,
+    "citation": "Experience \u203a Software Engineering Intern, Coding Raja Technologies, India (Jul 2022 - Jul 2023)"
+  },
+  {
+    "chunk_id": "projects--agentiq--1",
+    "section": "Projects",
+    "entry": "AgentIQ - Multi-Step Agentic Research Assistant (Apr 2026 - Present)",
+    "text": "AgentIQ - Multi-Step Agentic Research Assistant (Apr 2026 - Present)\nTechnologies: Python, LangGraph, FAISS, Pinecone, LlamaIndex, FastAPI, Next.js/TypeScript, Kubernetes (Red Hat OpenShift), AWS EC2.\n- Built and owned a full-stack application end to end: a FastAPI back-end service with a Next.js (React-based) front-end, containerized with Docker and deployed to Kubernetes.\n- Architected an agentic research assistant using LangGraph to orchestrate multi-step retrieval and reasoning, load-tested under real traffic (1 to 4 replicas across about 1,371 requests, zero crashes), with an automated RAGAS evaluation loop reaching 0.91 faithfulness and 0.84 answer relevancy.\n- Source code is on GitHub.",
+    "part": 1,
+    "parts": 1,
+    "citation": "Projects \u203a AgentIQ - Multi-Step Agentic Research Assistant (Apr 2026 - Present)"
+  },
+  {
+    "chunk_id": "projects--incidentmemory-ai--1",
+    "section": "Projects",
+    "entry": "IncidentMemory AI - Production RAG System for Document Retrieval (Mar 2026 - Present)",
+    "text": "IncidentMemory AI - Production RAG System for Document Retrieval (Mar 2026 - Present)\nTechnologies: Python, FastAPI, Qdrant, BM25, sentence-transformers, MLflow, PostgreSQL, Redis, Docker, AWS EC2.\n- Designed and deployed a Retrieval-Augmented Generation pipeline integrating sparse and dense retrievers (BM25 plus Qdrant vector search, fused via RRF, with cross-encoder reranking) over a vectorized knowledge base to generate contextual, grounded responses.\n- Applied debugging and testing practices to catch and fix retrieval quality issues, tracked in MLflow (Recall@1, Recall@3, Recall@5, and MRR).\n- Source code is on GitHub.",
+    "part": 1,
+    "parts": 1,
+    "citation": "Projects \u203a IncidentMemory AI - Production RAG System for Document Retrieval (Mar 2026 - Present)"
+  },
+  {
+    "chunk_id": "projects--mcp-tool-calling-agent--1",
+    "section": "Projects",
+    "entry": "MCP Tool-Calling Agent - LLM-Based Tool-Calling System (Sep 2026 - Present)",
+    "text": "MCP Tool-Calling Agent - LLM-Based Tool-Calling System (Sep 2026 - Present)\nTechnologies: Python, FastMCP (Model Context Protocol), stdio JSON-RPC, pytest, GitHub Actions CI.\n- Built an LLM-based agent workflow using the Model Context Protocol: a server exposing 3 tools (GitHub repo search, URL fetch, and SQLite query) over stdio JSON-RPC, covered by a pytest suite running in CI for reliability.",
+    "part": 1,
+    "parts": 1,
+    "citation": "Projects \u203a MCP Tool-Calling Agent - LLM-Based Tool-Calling System (Sep 2026 - Present)"
+  },
+  {
+    "chunk_id": "projects--triagetune--1",
+    "section": "Projects",
+    "entry": "TriageTune - LoRA Fine-Tuning Experiment (Sep 2026 - Present)",
+    "text": "TriageTune - LoRA Fine-Tuning Experiment (Sep 2026 - Present)\nTechnologies: Python, NumPy, Pandas, Scikit-learn, PEFT/LoRA, HuggingFace Transformers.\n- Built and evaluated four modeling approaches on the same task using bootstrap confidence intervals (10,000 samples); found a classical baseline still outperformed a LoRA-fine-tuned LLM by 4.2 points, an unexpected result reported honestly rather than a single number.",
+    "part": 1,
+    "parts": 1,
+    "citation": "Projects \u203a TriageTune - LoRA Fine-Tuning Experiment (Sep 2026 - Present)"
+  },
+  {
+    "chunk_id": "education--master-of-science--1",
+    "section": "Education",
+    "entry": "Master of Science, Computer Science - University of North Texas, Denton, TX (Aug 2024 - May 2026)",
+    "text": "Master of Science, Computer Science - University of North Texas, Denton, TX (Aug 2024 - May 2026)\n- Degree date May 2026. GPA 3.909.\n- Teaching Assistant, Algorithms - University of North Texas, Fall 2025 to Spring 2026.",
+    "part": 1,
+    "parts": 1,
+    "citation": "Education \u203a Master of Science, Computer Science - University of North Texas, Denton, TX (Aug 2024 - May 2026)"
+  },
+  {
+    "chunk_id": "publication--1",
+    "section": "Publication",
+    "entry": null,
+    "text": "Publication\nCross-Lingual Stability and Bias in Instruction-Tuned Language Models for Humanitarian NLP.\nPublished in the Proceedings of LREC 2026, focused on fairness and bias mitigation in multilingual LLM behavior.",
+    "part": 1,
+    "parts": 1,
+    "citation": "Publication"
+  },
+  {
+    "chunk_id": "certifications--1",
+    "section": "Certifications",
+    "entry": null,
+    "text": "Certifications\n- Building with the Claude API - Anthropic, Mar 2026.\n- Introduction to Model Context Protocol - Anthropic, Mar 2026.",
+    "part": 1,
+    "parts": 1,
+    "citation": "Certifications"
+  }
+]

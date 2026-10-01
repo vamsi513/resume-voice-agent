@@ -1,0 +1,21 @@
+# Direct dependencies, pinned. requirements.lock.txt holds the full resolved tree
+# (every transitive package at its exact version) -- install that for an identical
+# environment, this one to upgrade deliberately.
+langgraph==1.2.12
+langgraph-checkpoint-sqlite==3.1.1
+langchain-core==1.6.6
+langchain-openai==1.6.7
+openai==3.22.1
+fastapi==0.142.2
+uvicorn[standard]==0.54.0
+pydantic==2.13.5
+python-dotenv==1.2.4
+numpy==2.5.3
+pypdf==6.19.0
+aiosqlite==0.22.1
+
+# dev / eval
+pytest==9.1.1
+pytest-asyncio==1.4.0
+httpx==0.28.1
+ruff==0.16.10

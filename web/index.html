@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resume Voice Agent</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #6b6b6b; --line: #d8d8d8;
+    --panel: #f6f6f6; --accent: #1a1a1a; --warn: #8a4b00; --ok: #1f6b33;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161616; --fg: #e8e8e8; --muted: #9a9a9a; --line: #333;
+      --panel: #1f1f1f; --accent: #e8e8e8; --warn: #e0a060; --ok: #7fc48f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+
+  .bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+  button {
+    font: inherit; padding: 9px 18px; border: 1px solid var(--accent);
+    background: var(--accent); color: var(--bg); border-radius: 4px; cursor: pointer;
+  }
+  button.secondary { background: transparent; color: var(--fg); border-color: var(--line); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+
+  .status { display: flex; gap: 18px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .status b { font-weight: 500; color: var(--fg); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+         background: var(--line); margin-right: 5px; vertical-align: 1px; }
+  .dot.on { background: var(--ok); } .dot.busy { background: var(--warn); }
+
+  .note {
+    border: 1px solid var(--line); border-left-width: 3px; padding: 10px 12px;
+    margin: 16px 0; font-size: 13px; color: var(--muted); border-radius: 3px;
+  }
+  .note code { font-size: 12px; }
+
+  h2 { font-size: 14px; font-weight: 600; margin: 28px 0 8px; }
+  #transcript {
+    border: 1px solid var(--line); border-radius: 4px; min-height: 180px;
+    max-height: 420px; overflow-y: auto; padding: 4px 0;
+  }
+  .turn { padding: 7px 14px; display: flex; gap: 10px; align-items: baseline; }
+  .turn + .turn { border-top: 1px solid var(--line); }
+  .who { flex: 0 0 72px; font-size: 12px; color: var(--muted); text-transform: lowercase; }
+  .what { flex: 1; white-space: pre-wrap; }
+  .turn.partial .what { color: var(--muted); font-style: italic; }
+  .empty { padding: 14px; color: var(--muted); font-size: 13px; }
+
+  details { margin-top: 20px; }
+  summary { cursor: pointer; font-size: 14px; font-weight: 600; }
+  .ev { border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; margin-top: 10px;
+        background: var(--panel); font-size: 13px; }
+  .ev h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+  .kv { display: grid; grid-template-columns: 150px 1fr; gap: 2px 10px; margin-bottom: 8px; }
+  .kv span:nth-child(odd) { color: var(--muted); }
+  .passage { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
+  .passage .cite { color: var(--muted); font-size: 12px; }
+  .passage pre { white-space: pre-wrap; margin: 4px 0 0; font: inherit; }
+  code { background: var(--panel); padding: 1px 4px; border-radius: 3px; }
+  label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+  input[type=text] {
+    font: inherit; padding: 7px 9px; border: 1px solid var(--line); border-radius: 4px;
+    background: var(--bg); color: var(--fg); width: 100%;
+  }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Resume Voice Agent</h1>
+  <p class="sub">Ask about Vamsi Krishna Sadu's background. Answers come only from his resume.</p>
+
+  <div class="bar">
+    <button id="call">Start call</button>
+    <button id="end" class="secondary" disabled>End call</button>
+    <div class="status">
+      <span><i class="dot" id="d-conn"></i>connection <b id="s-conn">idle</b></span>
+      <span><i class="dot" id="d-mic"></i>microphone <b id="s-mic">not requested</b></span>
+      <span><i class="dot" id="d-turn"></i><b id="s-turn">—</b></span>
+    </div>
+  </div>
+
+  <div class="note" id="setup">
+    <span id="setup-copy"><strong>Voice setup.</strong> Paste a Vapi <em>public</em> key and
+    assistant id below, or append them to the URL as <code>?key=...&amp;assistant=...</code>.
+    Without them the page runs in text mode, which exercises the identical LangGraph
+    pipeline over <code>POST /text</code>.</span>
+    <div class="row" style="margin-top:10px" id="setup-fields">
+      <div><label for="k">Vapi public key</label><input type="text" id="k" placeholder="pk_..." autocomplete="off"></div>
+      <div><label for="a">Assistant id</label><input type="text" id="a" placeholder="uuid" autocomplete="off"></div>
+    </div>
+    <div class="hint">The public key is safe in a browser by design. Never paste a private key here.</div>
+  </div>
+
+  <h2>Transcript</h2>
+  <div id="transcript"><div class="empty">Nothing yet.</div></div>
+
+  <div class="row" style="margin-top:10px" id="textrow">
+    <input type="text" id="msg" placeholder="Type a question and press Enter (text mode)">
+    <button id="send" class="secondary" style="flex:0 0 auto">Send</button>
+  </div>
+
+  <details id="debugbox" open>
+    <summary>Retrieval evidence (last turn)</summary>
+    <div class="ev" id="debug"><div class="empty" style="padding:0">No turn yet.</div></div>
+  </details>
+</main>
+
+<script type="module">
+// Minimal demo client. Two paths into the same LangGraph backend:
+//   voice -> Vapi web SDK -> Vapi cloud -> POST /chat/completions (custom LLM)
+//   text  -> POST /text
+// The debug panel reads GET /debug/last, so retrieval evidence is inspectable without
+// ever being spoken. Chunk ids and scores are shown here and nowhere else.
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+let callId = null;          // set per call; the server maps it to a LangGraph thread
+let partialEl = null;
+
+$("k").value = params.get("key") || "";
+$("a").value = params.get("assistant") || "";
+
+// Pre-fill from the server when it has been configured, so a reviewer opening the
+// link can just press Start call. URL params still win, so you can override.
+fetch("/vapi-config").then((r) => r.json()).then((c) => {
+  if (!$("k").value && c.publicKey) $("k").value = c.publicKey;
+  if (!$("a").value && c.assistantId) $("a").value = c.assistantId;
+  if (c.configured) {
+    // Replace the whole instruction block, and collapse the now-redundant key fields.
+    $("setup-copy").innerHTML =
+      "<strong>Ready.</strong> Press <em>Start call</em> and allow the microphone. " +
+      "Or type a question below for text mode, which runs the identical LangGraph " +
+      "pipeline without voice.";
+    $("setup-fields").style.display = "none";
+    const hint = $("setup").querySelector(".hint");
+    if (hint) hint.style.display = "none";
+  }
+}).catch(() => {});
+
+function setStatus(which, text, cls) {
+  $("s-" + which).textContent = text;
+  const dot = $("d-" + which);
+  if (dot) dot.className = "dot" + (cls ? " " + cls : "");
+}
+
+function clearEmpty() {
+  const empty = $("transcript").querySelector(".empty");
+  if (empty) empty.remove();
+}
+
+function addTurn(who, what, partial = false) {
+  clearEmpty();
+  const el = document.createElement("div");
+  el.className = "turn" + (partial ? " partial" : "");
+  el.innerHTML = `<div class="who"></div><div class="what"></div>`;
+  el.querySelector(".who").textContent = who;
+  el.querySelector(".what").textContent = what;
+  $("transcript").append(el);
+  $("transcript").scrollTop = $("transcript").scrollHeight;
+  return el;
+}
+
+async function refreshDebug(id) {
+  try {
+    // In text mode we know our own id. In a voice call the SDK may not surface Vapi's
+    // call id, so fall back to "whatever turn the server finished most recently".
+    const query = id ? `call_id=${encodeURIComponent(id)}` : "latest=1";
+    let res = await fetch(`/debug/last?${query}`);
+    let d = await res.json();
+    if (!d || !d.route) {
+      d = await (await fetch("/debug/last?latest=1")).json();
+    }
+    if (!d || !d.route) return;
+    const passages = (d.evidence || []).map((e) => `
+      <div class="passage">
+        <div class="cite">${e.citation} &middot; cosine ${e.dense_score} &middot; <code>${e.chunk_id}</code></div>
+        <pre>${e.text.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]))}</pre>
+      </div>`).join("");
+    $("debug").innerHTML = `
+      <h3>${d.question || ""}</h3>
+      <div class="kv">
+        <span>route</span><span><b>${d.route}</b> &mdash; ${d.route_reason || ""}</span>
+        <span>resolved query</span><span>${d.resolved_question || "(unchanged)"}</span>
+        <span>top cosine</span><span>${d.top_dense_score}</span>
+        <span>scope flags</span><span>${(d.flags || []).join(", ") || "none"}</span>
+        <span>thread</span><span><code>${d.thread_id}</code> &middot; turn ${d.turn_index} &middot; ${d.history_messages} msgs</span>
+        <span>latency</span><span>${d.latency_seconds}s</span>
+      </div>
+      ${passages || "<div class='cite'>No passages retrieved for this route.</div>"}`;
+  } catch (_) { /* debug panel is best-effort */ }
+}
+
+// ---- text mode -----------------------------------------------------------
+async function sendText() {
+  const text = $("msg").value.trim();
+  if (!text) return;
+  $("msg").value = "";
+  callId = callId || "web-text-" + Math.random().toString(36).slice(2, 10);
+  addTurn("you", text);
+  setStatus("turn", "thinking…", "busy");
+  try {
+    const res = await fetch("/text", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ call_id: callId, message: text }),
+    });
+    const d = await res.json();
+    addTurn("assistant", d.answer || d.detail || "(no answer)");
+    setStatus("turn", "idle");
+    refreshDebug(callId);
+  } catch (e) {
+    addTurn("error", String(e));
+    setStatus("turn", "error");
+  }
+}
+$("send").onclick = sendText;
+$("msg").onkeydown = (e) => { if (e.key === "Enter") sendText(); };
+
+// ---- voice mode ----------------------------------------------------------
+$("call").onclick = async () => {
+  const key = $("k").value.trim();
+  const assistant = $("a").value.trim();
+  if (!key || !assistant) {
+    addTurn("note", "No Vapi key or assistant id, so voice is unavailable. Type a question below instead.");
+    return;
+  }
+  $("call").disabled = true;
+  setStatus("conn", "connecting…", "busy");
+  let vapi;
+  try {
+    const mod = await import("https://cdn.jsdelivr.net/npm/@vapi-ai/web@2.7.1/+esm");
+    // The CDN bundle double-wraps the CommonJS default export, so the constructor
+    // lands at mod.default.default rather than mod.default. Resolve it by shape
+    // instead of assuming, so a future bundler change doesn't break this again.
+    const Vapi = [mod?.default?.default, mod?.default, mod?.Vapi, mod]
+      .find((candidate) => typeof candidate === "function");
+    if (!Vapi) throw new Error("no constructor found in the Vapi module");
+    // Constructing inside the try matters: when this threw outside it, the rejection
+    // was uncaught and the page sat on "connecting..." with nothing in the transcript.
+    vapi = new Vapi(key);
+  } catch (e) {
+    setStatus("conn", "SDK load failed");
+    addTurn("error", "Could not load the Vapi web SDK: " + (e?.message || e));
+    $("call").disabled = false;
+    return;
+  }
+  window.__vapi = vapi;
+
+  vapi.on("call-start", () => {
+    setStatus("conn", "connected", "on");
+    setStatus("mic", "live", "on");
+    $("end").disabled = false;
+    // Vapi's call id is the session key. Read it from the SDK so the debug panel
+    // and the server agree on which LangGraph thread this call maps to.
+    callId = vapi.call?.id || callId;
+    addTurn("note", "Connected" + (callId ? ` (call ${callId})` : "") + ". Speak when ready.");
+  });
+
+  vapi.on("call-end", () => {
+    setStatus("conn", "ended");
+    setStatus("mic", "released");
+    setStatus("turn", "—");
+    $("call").disabled = false;
+    $("end").disabled = true;
+    refreshDebug(callId);
+  });
+
+  // speech-start/-end are Vapi's turn signals for the ASSISTANT's speech. Vapi's own
+  // voice-activity detection and endpointing decide when the caller has stopped
+  // talking and when to interrupt -- none of that happens in this page or in the graph.
+  vapi.on("speech-start", () => setStatus("turn", "assistant speaking", "busy"));
+  vapi.on("speech-end", () => { setStatus("turn", "listening", "on"); refreshDebug(callId); });
+
+  vapi.on("message", (m) => {
+    if (m.type !== "transcript") return;
+    const who = m.role === "user" ? "you" : "assistant";
+    if (m.transcriptType === "partial") {
+      if (partialEl) partialEl.querySelector(".what").textContent = m.transcript;
+      else partialEl = addTurn(who, m.transcript, true);
+    } else {
+      if (partialEl) { partialEl.remove(); partialEl = null; }
+      addTurn(who, m.transcript);
+      if (m.role === "user") setStatus("turn", "thinking…", "busy");
+    }
+  });
+
+  vapi.on("error", (e) => {
+    setStatus("conn", "error");
+    addTurn("error", e?.errorMsg || e?.message || JSON.stringify(e));
+    $("call").disabled = false;
+  });
+
+  try {
+    await vapi.start(assistant);
+  } catch (e) {
+    setStatus("conn", "failed");
+    addTurn("error", "start() failed: " + (e?.message || e));
+    $("call").disabled = false;
+  }
+};
+
+$("end").onclick = () => { window.__vapi?.stop(); };
+
+// Show the configured backend so the demo can prove which model and index are live.
+fetch("/health").then((r) => r.json()).then((h) => {
+  $("setup").insertAdjacentHTML("beforeend",
+    `<div class="hint" style="margin-top:8px">Backend ready: ${h.chunks} resume chunks &middot;
+     ${h.embedding_model} (${h.embedding_dim}d) &middot; ${h.chat_model} &middot;
+     checkpointer ${h.checkpointer}</div>`);
+}).catch(() => {});
+</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+{
+  "_about": {
+    "source": "data/resume.md, derived from Vamsi_Sadu_Resume_AppliedAI_.pdf",
+    "purpose": "Labeled retrieval set. Each question names the chunk(s) that actually contain the answer, so Recall@k and MRR measure whether the right resume passage reached the generator.",
+    "labeling_rule": "A chunk is relevant only if a correct spoken answer could be produced from that chunk alone. Chunks that merely mention the topic are not relevant. Labels were written by reading data/chunks.json, not by running the retriever.",
+    "categories": "education | project | project_tech | experience | paraphrase | publication | skills | certifications | location | unanswerable",
+    "unanswerable_rows": "relevant_chunks is empty on purpose. These are scored separately and excluded from Recall/MRR; they exist to measure the score separation the similarity gate depends on."
+  },
+  "questions": [
+    {"id": "edu-1", "category": "education", "question": "Where did he go to school?", "relevant_chunks": ["education--master-of-science--1"]},
+    {"id": "edu-2", "category": "education", "question": "What degree does he have?", "relevant_chunks": ["education--master-of-science--1"]},
+    {"id": "edu-3", "category": "paraphrase", "question": "Tell me about his academic background.", "relevant_chunks": ["education--master-of-science--1"]},
+    {"id": "edu-4", "category": "education", "question": "What was his GPA?", "relevant_chunks": ["education--master-of-science--1"]},
+    {"id": "edu-5", "category": "paraphrase", "question": "Which university is he at and what did he study there?", "relevant_chunks": ["education--master-of-science--1"]},
+    {"id": "edu-6", "category": "education", "question": "Was he a teaching assistant?", "relevant_chunks": ["education--master-of-science--1"]},
+
+    {"id": "proj-1", "category": "project", "question": "What is AgentIQ?", "relevant_chunks": ["projects--agentiq--1"]},
+    {"id": "proj-2", "category": "project", "question": "Tell me about IncidentMemory AI.", "relevant_chunks": ["projects--incidentmemory-ai--1"]},
+    {"id": "proj-3", "category": "project", "question": "What is the MCP tool-calling agent?", "relevant_chunks": ["projects--mcp-tool-calling-agent--1"]},
+    {"id": "proj-4", "category": "project", "question": "What did he find in TriageTune?", "relevant_chunks": ["projects--triagetune--1"]},
+    {"id": "proj-5", "category": "paraphrase", "question": "What problem does his document retrieval system solve?", "relevant_chunks": ["projects--incidentmemory-ai--1"]},
+    {"id": "proj-6", "category": "paraphrase", "question": "Has he built anything with agents?", "relevant_chunks": ["projects--agentiq--1", "projects--mcp-tool-calling-agent--1"]},
+    {"id": "proj-7", "category": "paraphrase", "question": "Has he done any fine-tuning work?", "relevant_chunks": ["projects--triagetune--1"]},
+
+    {"id": "tech-1", "category": "project_tech", "question": "What technologies did he use in AgentIQ?", "relevant_chunks": ["projects--agentiq--1"]},
+    {"id": "tech-2", "category": "project_tech", "question": "What vector database does IncidentMemory use?", "relevant_chunks": ["projects--incidentmemory-ai--1"]},
+    {"id": "tech-3", "category": "project_tech", "question": "How did he do reranking?", "relevant_chunks": ["projects--incidentmemory-ai--1"]},
+    {"id": "tech-4", "category": "project_tech", "question": "Did he use Kubernetes anywhere?", "relevant_chunks": ["projects--agentiq--1", "technical-skills--1"]},
+    {"id": "tech-5", "category": "project_tech", "question": "Did he use LangGraph anywhere?", "relevant_chunks": ["projects--agentiq--1", "technical-skills--1"]},
+    {"id": "tech-6", "category": "project_tech", "question": "How did he test the MCP agent?", "relevant_chunks": ["projects--mcp-tool-calling-agent--1"]},
+    {"id": "tech-7", "category": "project_tech", "question": "What front-end framework did he use in AgentIQ?", "relevant_chunks": ["projects--agentiq--1"]},
+    {"id": "tech-8", "category": "paraphrase", "question": "How well did AgentIQ score on evaluation?", "relevant_chunks": ["projects--agentiq--1"]},
+
+    {"id": "exp-1", "category": "experience", "question": "What work experience does he have?", "relevant_chunks": ["experience--graduate-research-assistant--1", "experience--machine-learning-intern--1", "experience--software-engineering-intern--1"]},
+    {"id": "exp-2", "category": "experience", "question": "What did he do at Codecasa?", "relevant_chunks": ["experience--machine-learning-intern--1"]},
+    {"id": "exp-3", "category": "experience", "question": "Tell me about his research assistant role.", "relevant_chunks": ["experience--graduate-research-assistant--1"]},
+    {"id": "exp-4", "category": "paraphrase", "question": "Has he ever built data pipelines professionally?", "relevant_chunks": ["experience--machine-learning-intern--1"]},
+    {"id": "exp-5", "category": "experience", "question": "What did he do at Coding Raja Technologies?", "relevant_chunks": ["experience--software-engineering-intern--1"]},
+    {"id": "exp-6", "category": "paraphrase", "question": "Does he have any front-end web development experience at a job?", "relevant_chunks": ["experience--software-engineering-intern--1"]},
+    {"id": "exp-7", "category": "experience", "question": "How long was he at Codecasa?", "relevant_chunks": ["experience--machine-learning-intern--1"]},
+
+    {"id": "pub-1", "category": "publication", "question": "Has he published anything?", "relevant_chunks": ["publication--1"]},
+    {"id": "pub-2", "category": "publication", "question": "Tell me about his paper.", "relevant_chunks": ["publication--1"]},
+    {"id": "pub-3", "category": "paraphrase", "question": "What conference was his research published at?", "relevant_chunks": ["publication--1"]},
+
+    {"id": "skill-1", "category": "skills", "question": "What programming languages does he know?", "relevant_chunks": ["technical-skills--1"]},
+    {"id": "skill-2", "category": "paraphrase", "question": "Is he familiar with Docker?", "relevant_chunks": ["technical-skills--1"]},
+    {"id": "skill-3", "category": "skills", "question": "What cloud platforms has he worked with?", "relevant_chunks": ["technical-skills--1"]},
+    {"id": "cert-1", "category": "certifications", "question": "Does he have any certifications?", "relevant_chunks": ["certifications--1"]},
+    {"id": "loc-1", "category": "location", "question": "Where is he based and would he relocate?", "relevant_chunks": ["location--1"]},
+
+    {"id": "un-1", "category": "unanswerable", "question": "What is the capital of France?", "relevant_chunks": []},
+    {"id": "un-2", "category": "unanswerable", "question": "Can you write me a Python script to sort a list?", "relevant_chunks": []},
+    {"id": "un-3", "category": "unanswerable", "question": "What's the weather like today?", "relevant_chunks": []},
+    {"id": "un-4", "category": "unanswerable", "question": "Who won the World Cup?", "relevant_chunks": []},
+    {"id": "un-5", "category": "unanswerable", "question": "Explain how transformers work.", "relevant_chunks": []}
+  ]
+}

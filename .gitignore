@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Secrets
+.env
+
+# Source resume: contains a real phone number and email, and this repo is public.
+# Nothing depends on it except scripts/verify_source.py, which skips when it is absent.
+data/resume_source.pdf
+
+# Generated at runtime / build time
+data/checkpoints.sqlite
+data/checkpoints.sqlite-*
+data/emb_cache.json
+
+# Generated but committed on purpose (inspectable artefacts):
+#   data/chunks.json           the indexed corpus
+#   eval/results_*.json        actual measured results
