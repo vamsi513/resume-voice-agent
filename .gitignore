@@ -19,3 +19,7 @@ data/emb_cache.json
 # Generated but committed on purpose (inspectable artefacts):
 #   data/chunks.json           the indexed corpus
 #   eval/results_*.json        actual measured results
+
+# Personal prep notes for demoing this. Kept locally, not published.
+DEMO_CARD.md
+WALKTHROUGH.md

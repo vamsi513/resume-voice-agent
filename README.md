@@ -14,8 +14,8 @@ caller speaks
    <- Vapi                       text-to-speech
 ```
 
-Verified on live voice calls. `WALKTHROUGH.md` explains every decision below in depth;
-this file is setup, architecture, results and limits.
+Verified on live voice calls. Setup, architecture, measured results and limits below;
+the reasoning behind each decision is in the code comments.
 
 ---
 
