@@ -299,3 +299,43 @@ def test_debug_payload_carries_raw_text_for_the_client_to_escape(client):
         {"role": "user", "content": payload}]))
     debug = client.get("/debug/last", params={"call_id": "vapi-call-1"}).json()
     assert debug["question"] == payload
+
+
+# --- /health must not leak session or host information --------------------------
+# Found in review: /health is the one unauthenticated route, and it was returning every
+# active call id and thread id (session identifiers) plus the absolute path of the
+# checkpoint database (the operator's username and directory layout).
+
+def test_health_is_public(secured):
+    """Still reachable without a key -- the demo page and uptime checks need it."""
+    assert secured.get("/health").status_code == 200
+
+
+@pytest.mark.parametrize("leaky_field", [
+    "sessions", "active_sessions", "checkpoint_db",
+    "min_similarity", "dense_weight", "top_k", "max_history_turns",
+])
+def test_health_does_not_expose_sessions_or_internals(client, leaky_field):
+    client.post("/chat/completions", json=vapi_body(stream=False))
+    assert leaky_field not in client.get("/health").json()
+
+
+def test_health_still_reports_what_the_page_needs(client):
+    body = client.get("/health").json()
+    for field in ("ready", "chunks", "embedding_model", "embedding_dim", "chat_model"):
+        assert field in body
+
+
+def test_health_body_contains_no_filesystem_path(client):
+    assert "/" not in str(client.get("/health").json().get("checkpointer", ""))
+    assert not any(
+        isinstance(v, str) and v.startswith("/") for v in client.get("/health").json().values()
+    )
+
+
+def test_session_detail_moved_behind_the_secret(secured):
+    assert secured.get("/debug/sessions").status_code == 401
+    body = secured.get("/debug/sessions", headers={"X-Vapi-Secret": "s3cret"}).json()
+    assert "sessions" in body and "config" in body
+    # Even here the checkpoint path is reduced to a filename.
+    assert "/" not in body["config"]["checkpoint_db"]

@@ -34,7 +34,7 @@ which exercises the identical pipeline over `POST /text` — every behaviour bel
 demonstrable with no spend and no public URL.
 
 ```bash
-pytest -q                                                       # 122 offline tests
+pytest -q                                                       # 134 offline tests
 python eval/run_retrieval_eval.py --hybrid --dense-weight 0.8   # Hit@k, Recall@k, MRR
 python eval/run_grounding_eval.py --base http://127.0.0.1:8000  # 31 behavioural cases
 python eval/run_retrieval_eval.py --sweep                       # the threshold evidence
@@ -60,7 +60,14 @@ Open the printed URL and press Start call. Two settings matter:
   browser never even reaches the microphone prompt.
 
 **Set `SERVER_SECRET` before exposing anything.** It gates every route that spends money
-or returns data. The page takes it from `?secret=...`.
+or returns data. Only two routes stay public: `/health` (readiness — no sessions, no
+config, no paths) and `/greeting`. The page prompts for the key in a password field and
+keeps it in `sessionStorage` for that tab; a `?secret=...` is accepted once but is moved
+into storage and stripped from the address bar, since a query string lands in browser
+history, in `Referer` headers and in every proxy log on the way.
+
+Share the link and the key separately. Session detail and tuning config live behind
+`/debug/sessions`.
 
 ---
 
@@ -226,11 +233,11 @@ list of facts that would only appear if invented, so a case fails on fabrication
 when refusal wording changes. Limits: a refusal phrased outside the regex scores as a
 failure even if correct, and a fabrication nobody listed scores as a pass.
 
-### 122 offline tests, no network
+### 134 offline tests, no network
 
 Chunking · scope controls (including speech-disfluency regressions from the live call) ·
 retrieval · graph routing and state · sessions and concurrency · the Vapi HTTP contract ·
-endpoint authorisation. Plus `ruff` clean.
+endpoint authorisation and public-surface leakage. Plus `ruff` clean.
 
 ### Latency (localhost, excludes speech-to-text and text-to-speech)
 
@@ -241,7 +248,7 @@ Answer 2.1s · with reference resolution 2.4s · router-decided refusal 0.5s ·
 
 | | |
 |---|---|
-| **Locally** | 122 tests; retrieval and grounding evals; latency; thread isolation; checkpoint read-back; duplicate suppression; endpoint auth |
+| **Locally** | 134 tests; retrieval and grounding evals; latency; thread isolation; checkpoint read-back; duplicate suppression; endpoint auth |
 | **On live Vapi calls** | Three browser calls, 15 turns. SSE framing accepted in production; `call.id` → thread mapping; memory held across 11 turns; calls stayed isolated; every refusal class fired over voice |
 | **Not verified** | Telephony (browser only). Barge-in not deliberately exercised. Concurrent callers not tested with real calls. No load testing |
 
@@ -270,6 +277,9 @@ verbatim transcriptions as regression tests.
 9. **Single process**, in-process locks.
 10. **No checkpoint retention** — the SQLite file grows forever and holds transcripts.
 11. **No PII redaction in logs** — questions are logged truncated at 60 characters.
+12. **The access key is a single shared secret**, not per-user auth. It stops a stranger
+    who finds the URL; it does not distinguish between people who have it, and there is
+    no rotation or revocation beyond changing it and restarting.
 
 ---
 
@@ -281,7 +291,7 @@ data/       resume.md (knowledge source) · chunks.json (indexed corpus)
 eval/       labeled sets and actual measured results
 scripts/    verify_source · rebuild · create_assistant · measure_latency
 web/        the browser call page
-tests/      122 offline tests
+tests/      134 offline tests
 ```
 
 > The source PDF is gitignored and the contact line in `resume.md` is redacted — both

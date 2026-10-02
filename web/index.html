@@ -92,6 +92,21 @@
     </div>
   </div>
 
+  <div class="note" id="auth" hidden>
+    <strong>This server is protected.</strong> Enter the access key you were given.
+    <div class="row" style="margin-top:10px">
+      <div>
+        <label for="sec">Access key</label>
+        <input type="password" id="sec" autocomplete="off" spellcheck="false"
+               placeholder="paste the key">
+      </div>
+      <div style="flex:0 0 auto; align-self:end">
+        <button id="unlock" class="secondary">Unlock</button>
+      </div>
+    </div>
+    <div class="hint" id="autherr"></div>
+  </div>
+
   <div class="note" id="setup">
     <span id="setup-copy"><strong>Voice setup.</strong> Paste a Vapi <em>public</em> key and
     assistant id below, or append them to the URL as <code>?key=...&amp;assistant=...</code>.
@@ -126,10 +141,24 @@
 // ever being spoken. Chunk ids and scores are shown here and nowhere else.
 const $ = (id) => document.getElementById(id);
 
-// When the server is protected, the page needs the secret for /text and /debug. It is
-// supplied per-browser via ?secret=... and kept only in memory -- it is NOT baked into
-// the page, so the HTML itself carries no credential.
-const sharedSecret = new URLSearchParams(location.search).get("secret") || "";
+// The access key is typed into a password field and held in sessionStorage for this
+// tab only. It is never put in the URL: a query string lands in browser history, in
+// the Referer header on any outbound link, and in the access log of every proxy on
+// the way. A ?secret=... is still accepted for backwards compatibility, but it is
+// moved into storage and stripped from the address bar immediately.
+let sharedSecret = "";
+try { sharedSecret = sessionStorage.getItem("agentKey") || ""; } catch (_) { /* private mode */ }
+
+(() => {
+  const fromUrl = new URLSearchParams(location.search).get("secret");
+  if (!fromUrl) return;
+  sharedSecret = fromUrl;
+  try { sessionStorage.setItem("agentKey", fromUrl); } catch (_) { /* ignore */ }
+  const url = new URL(location.href);
+  url.searchParams.delete("secret");
+  history.replaceState(null, "", url);   // drop it from the address bar and history
+})();
+
 const secretHeaders = () => (sharedSecret ? { "X-Vapi-Secret": sharedSecret } : {});
 const params = new URLSearchParams(location.search);
 let callId = null;          // set per call; the server maps it to a LangGraph thread
@@ -137,23 +166,6 @@ let partialEl = null;
 
 $("k").value = params.get("key") || "";
 $("a").value = params.get("assistant") || "";
-
-// Pre-fill from the server when it has been configured, so a reviewer opening the
-// link can just press Start call. URL params still win, so you can override.
-fetch("/vapi-config", { headers: secretHeaders() }).then((r) => r.json()).then((c) => {
-  if (!$("k").value && c.publicKey) $("k").value = c.publicKey;
-  if (!$("a").value && c.assistantId) $("a").value = c.assistantId;
-  if (c.configured) {
-    // Replace the whole instruction block, and collapse the now-redundant key fields.
-    $("setup-copy").innerHTML =
-      "<strong>Ready.</strong> Press <em>Start call</em> and allow the microphone. " +
-      "Or type a question below for text mode, which runs the identical LangGraph " +
-      "pipeline without voice.";
-    $("setup-fields").style.display = "none";
-    const hint = $("setup").querySelector(".hint");
-    if (hint) hint.style.display = "none";
-  }
-}).catch(() => {});
 
 function setStatus(which, text, cls) {
   $("s-" + which).textContent = text;
@@ -241,6 +253,12 @@ async function sendText() {
       headers: { "Content-Type": "application/json", ...secretHeaders() },
       body: JSON.stringify({ call_id: callId, message: text }),
     });
+    if (res.status === 401) {
+      addTurn("error", "Access key missing or rejected.");
+      $("auth").hidden = false;
+      setStatus("turn", "locked");
+      return;
+    }
     const d = await res.json();
     addTurn("assistant", d.answer || d.detail || "(no answer)");
     setStatus("turn", "idle");
@@ -341,6 +359,46 @@ $("call").onclick = async () => {
 };
 
 $("end").onclick = () => { window.__vapi?.stop(); };
+
+// Probe an authenticated route to find out whether a key is needed, and prompt for one
+// if so. /health is public and deliberately says nothing about sessions or config.
+async function checkAccess() {
+  try {
+    const res = await fetch("/vapi-config", { headers: secretHeaders() });
+    if (res.status === 401) {
+      $("auth").hidden = false;
+      $("autherr").textContent = sharedSecret
+        ? "That key was rejected."
+        : "Ask whoever shared this link for the access key.";
+      return false;
+    }
+    $("auth").hidden = true;
+    const c = await res.json();
+    if (!$("k").value && c.publicKey) $("k").value = c.publicKey;
+    if (!$("a").value && c.assistantId) $("a").value = c.assistantId;
+    if (c.configured) {
+      $("setup-copy").innerHTML =
+        "<strong>Ready.</strong> Press <em>Start call</em> and allow the microphone. " +
+        "Or type a question below for text mode, which runs the identical LangGraph " +
+        "pipeline without voice.";
+      $("setup-fields").style.display = "none";
+      const hint = $("setup").querySelector(".hint");
+      if (hint) hint.style.display = "none";
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+$("unlock").onclick = () => {
+  sharedSecret = $("sec").value.trim();
+  try { sessionStorage.setItem("agentKey", sharedSecret); } catch (_) { /* ignore */ }
+  $("sec").value = "";
+  checkAccess();
+};
+$("sec").onkeydown = (e) => { if (e.key === "Enter") $("unlock").click(); };
+checkAccess();
 
 // Show the configured backend so the demo can prove which model and index are live.
 fetch("/health").then((r) => r.json()).then((h) => {

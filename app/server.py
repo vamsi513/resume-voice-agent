@@ -26,6 +26,7 @@ import json
 import logging
 import time
 import uuid
+from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -345,21 +346,44 @@ async def text_turn(turn: TextTurn, _: None = Depends(require_secret)) -> dict:
 
 @app.get("/health")
 async def health() -> dict:
+    """Public readiness. Deliberately minimal.
+
+    This is the one unauthenticated route, because the demo page reads it before the
+    viewer has supplied a secret and an uptime check needs it. So it carries only what
+    that banner shows -- no session list, no tuning constants, no filesystem paths.
+
+    It previously returned every active call id and thread id, which are session
+    identifiers, plus the absolute path of the checkpoint database, which leaks the
+    operator's username and directory layout. Both now live behind /debug/sessions.
+    """
     retriever = STATE["retriever"]
-    registry = STATE["registry"]
     return {
         "ready": STATE["ready"],
         "chunks": len(retriever.chunks) if retriever else 0,
         "embedding_model": retriever.embedder.name if retriever else None,
         "embedding_dim": retriever.embedder.dim if retriever else None,
         "chat_model": settings.chat_model,
-        "hybrid_retrieval": settings.hybrid_retrieval,
-        "dense_weight": settings.dense_weight,
-        "min_similarity": settings.min_similarity,
-        "top_k": settings.top_k,
-        "max_history_turns": settings.max_history_turns,
         "checkpointer": "AsyncSqliteSaver",
-        "checkpoint_db": settings.checkpoint_db,
+    }
+
+
+@app.get("/debug/sessions")
+async def debug_sessions(_: None = Depends(require_secret)) -> dict:
+    """Live sessions and resolved tuning config. Authenticated: call ids and thread ids
+    identify conversations, and the checkpoint path identifies the operator's machine."""
+    registry = STATE["registry"]
+    return {
+        "config": {
+            "hybrid_retrieval": settings.hybrid_retrieval,
+            "dense_weight": settings.dense_weight,
+            "min_similarity": settings.min_similarity,
+            "high_confidence_similarity": settings.high_confidence_similarity,
+            "top_k": settings.top_k,
+            "max_history_turns": settings.max_history_turns,
+            "session_idle_seconds": settings.session_idle_seconds,
+            # Name only -- the full path would expose the operator's home directory.
+            "checkpoint_db": Path(settings.checkpoint_db).name,
+        },
         **(registry.stats() if registry else {}),
     }
 

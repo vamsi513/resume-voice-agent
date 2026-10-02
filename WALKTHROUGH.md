@@ -270,7 +270,7 @@ missing-detail, 4 unrelated, 4 fabrication, 4 injection, 1 clarification.
 > model invented them. The limit is real: a refusal phrased outside that regex scores as
 > a failure, and a fabrication nobody listed scores as a pass." 
 
-**123 unit tests**, no network, plus lint clean.
+**134 unit tests**, no network, plus lint clean.
 
 **Latency:** 2.1s to answer, 2.4s with reference resolution, **0.01s** for a deterministic
 refusal.
